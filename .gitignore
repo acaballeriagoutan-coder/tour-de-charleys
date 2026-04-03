@@ -1,0 +1,16 @@
+# Entorn Python
+backend/.env
+backend/__pycache__/
+backend/*.pyc
+backend/venv/
+backend/.venv/
+
+# Entorn Node
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
+frontend/dist/
+
+# Sistema
+.DS_Store
+Thumbs.db
