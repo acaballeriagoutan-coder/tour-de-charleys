@@ -42,7 +42,7 @@ export default function Home() {
         {/* Foto de fons */}
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/hero-bg.jpg')" }}
+          style={{ backgroundImage: "url('/Santuari_de_Bellmunt.jpg')" }}
         />
         {/* Capa fosca sobre la foto */}
         <div className="absolute inset-0 bg-black/55" />
@@ -57,7 +57,7 @@ export default function Home() {
           <img
             src="/logo.png"
             alt="Le Tour de Charley's"
-            className="w-44 md:w-56 mb-8 drop-shadow-2xl"
+            className="w-44 md:w-56 mb-8 drop-shadow-2xl rounded-full ring-2 ring-white/40 object-cover"
           />
 
           <div className="flex items-center gap-4">
@@ -83,7 +83,7 @@ export default function Home() {
         <img
           src="/logo.png"
           alt=""
-          className="absolute bottom-6 right-6 w-12 opacity-60"
+          className="absolute bottom-6 right-6 w-12 opacity-60 rounded-full ring-1 ring-white/30 object-cover"
         />
       </header>
 

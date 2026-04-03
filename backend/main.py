@@ -37,15 +37,23 @@ def root():
 
 @app.post("/ciclistes", status_code=201)
 def inscriure_ciclista(data: InscripcioInput):
-    result = supabase.table("ciclistes").insert({
-        "nom": data.nom,
-        "cognoms": data.cognoms,
-        "email": data.email,
-        "telefon": data.telefon,
-    }).execute()
-    if not result.data:
-        raise HTTPException(status_code=400, detail="Error en la inscripció")
-    return result.data[0]
+    try:
+        result = supabase.table("ciclistes").insert({
+            "nom": data.nom,
+            "cognoms": data.cognoms,
+            "email": data.email,
+            "telefon": data.telefon,
+        }).execute()
+        if not result.data:
+            raise HTTPException(status_code=400, detail="Error en la inscripció")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        msg = str(e)
+        if "duplicate key" in msg or "unique constraint" in msg:
+            raise HTTPException(status_code=409, detail="duplicate key value violates unique constraint \"ciclistes_email_key\"")
+        raise HTTPException(status_code=500, detail="Error intern del servidor")
 
 
 @app.get("/ciclistes")
@@ -56,12 +64,10 @@ def llistar_ciclistes():
 
 @app.post("/ciclistes/assignar-dorsals")
 def assignar_dorsals():
-    # Trobar el màxim dorsal assignat fins ara
     maxim = supabase.table("ciclistes").select("numero_dorsal").not_.is_("numero_dorsal", "null").execute()
     dorsals_existents = [r["numero_dorsal"] for r in maxim.data]
     seguent = max(dorsals_existents, default=0) + 1
 
-    # Obtenir ciclistes sense dorsal ordenats per data d'inscripció
     sense_dorsal = supabase.table("ciclistes").select("id").is_("numero_dorsal", "null").order("created_at").execute()
 
     actualitzats = 0
