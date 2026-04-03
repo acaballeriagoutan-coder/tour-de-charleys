@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-
-const API = 'http://localhost:8000'
+import api from '../lib/api'
 
 interface Ciclista {
   id: string
@@ -137,7 +135,7 @@ export default function Admin() {
 
   async function carregarCiclistes() {
     setCarregant(true)
-    const res = await axios.get(`${API}/ciclistes`)
+    const res = await api.get('/ciclistes')
     setCiclistes(res.data)
     setCarregant(false)
   }
@@ -162,6 +160,10 @@ export default function Admin() {
           <button onClick={() => navigate('/admin/dorsals')}
             className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-4 py-2 rounded-lg text-sm transition">
             Imprimir dorsals →
+          </button>
+          <button onClick={() => { localStorage.removeItem('admin_token'); navigate('/admin/login') }}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+            Sortir
           </button>
         </div>
       </header>

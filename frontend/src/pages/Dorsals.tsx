@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../lib/api'
 
-const API = 'http://localhost:8000'
 const LS_KEY = 'dorsal_bg_image'
 
 interface Ciclista {
@@ -21,7 +20,7 @@ export default function Dorsals() {
   const [bgImage, setBgImage] = useState<string | null>(localStorage.getItem(LS_KEY))
 
   useEffect(() => {
-    axios.get(`${API}/ciclistes/amb-dorsal`).then(res => {
+    api.get('/ciclistes/amb-dorsal').then(res => {
       setCiclistes(res.data)
       setCarregant(false)
     })

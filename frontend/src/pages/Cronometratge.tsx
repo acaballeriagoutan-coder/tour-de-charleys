@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import * as XLSX from 'xlsx'
+import api from '../lib/api'
 
-const API = 'http://localhost:8000'
 const ETAPES = [1, 2, 3]
 
 interface Ciclista {
@@ -38,7 +37,7 @@ export default function Cronometratge() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    axios.get(`${API}/ciclistes`).then(res => setCiclistes(res.data))
+    api.get('/ciclistes').then(res => setCiclistes(res.data))
   }, [])
 
   useEffect(() => {
@@ -94,6 +93,13 @@ export default function Cronometratge() {
   function resetEtapa() {
     if (!confirm(`Segur que vols esborrar tots els temps de l'Etapa ${etapa}?`)) return
     setTemps(prev => { const nova = { ...prev }; delete nova[etapa]; return nova })
+  }
+
+  function resetTot() {
+    if (!confirm('Segur que vols esborrar TOTS els temps de totes les etapes?')) return
+    setTemps({})
+    setUltim(null)
+    localStorage.removeItem('cronometratge')
   }
 
   // Registres de l'etapa actual ordenats per temps d'arribada
@@ -192,6 +198,14 @@ export default function Cronometratge() {
           <h1 className="text-xl font-bold">Cronometratge</h1>
         </div>
         <div className="flex gap-3">
+          <button onClick={() => navigate('/admin/full-temps')}
+            className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+            Full de temps
+          </button>
+          <button onClick={resetTot}
+            className="bg-red-700 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+            Reset tot
+          </button>
           <button onClick={exportarExcel}
             className="bg-green-600 hover:bg-green-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
             Exportar Excel
@@ -323,7 +337,7 @@ export default function Cronometratge() {
                   const m = Math.floor(s / 60)
                   const ss = s % 60
                   return (
-                    <tr key={g.dorsal} className={i === 0 ? 'bg-yellow-400/10' : ''}>
+                    <tr key={g.dorsal} className={i === 0 && general.length > 0 ? 'bg-yellow-400/10' : ''}>
                       <td className="px-4 py-2 font-black text-yellow-400">{i + 1}</td>
                       <td className="px-4 py-2">
                         <span className="bg-yellow-400 text-black font-black px-2 py-0.5 rounded text-xs">{g.dorsal}</span>
