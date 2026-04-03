@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from dotenv import load_dotenv
+from typing import Optional
 import os
 from supabase import create_client, Client
 
@@ -24,10 +25,24 @@ app.add_middleware(
 
 
 class InscripcioInput(BaseModel):
+    # Dades personals — obligatoris
     nom: str
     cognoms: str
     email: EmailStr
     telefon: str
+    dni: str
+    data_naixement: str
+    genere: str
+    # Contacte emergència — obligatoris
+    contacte_emergencia_nom: str
+    contacte_emergencia_telefon: str
+    # Assegurança — obligatori respondre
+    te_asseguranca: bool
+    vol_asseguranca: Optional[bool] = None   # només si te_asseguranca = False
+    numero_llicencia: Optional[str] = None   # opcional
+    # Legal — acceptació obligatòria
+    accepta_reglament: bool
+    cessio_imatge: bool
 
 
 @app.get("/")
@@ -37,12 +52,24 @@ def root():
 
 @app.post("/ciclistes", status_code=201)
 def inscriure_ciclista(data: InscripcioInput):
+    if not data.accepta_reglament:
+        raise HTTPException(status_code=400, detail="Cal acceptar el reglament per inscriure's")
     try:
         result = supabase.table("ciclistes").insert({
             "nom": data.nom,
             "cognoms": data.cognoms,
             "email": data.email,
             "telefon": data.telefon,
+            "dni": data.dni,
+            "data_naixement": data.data_naixement,
+            "genere": data.genere,
+            "contacte_emergencia_nom": data.contacte_emergencia_nom,
+            "contacte_emergencia_telefon": data.contacte_emergencia_telefon,
+            "te_asseguranca": data.te_asseguranca,
+            "vol_asseguranca": data.vol_asseguranca,
+            "numero_llicencia": data.numero_llicencia or None,
+            "accepta_reglament": data.accepta_reglament,
+            "cessio_imatge": data.cessio_imatge,
         }).execute()
         if not result.data:
             raise HTTPException(status_code=400, detail="Error en la inscripció")
@@ -52,7 +79,11 @@ def inscriure_ciclista(data: InscripcioInput):
     except Exception as e:
         msg = str(e)
         if "duplicate key" in msg or "unique constraint" in msg:
-            raise HTTPException(status_code=409, detail="duplicate key value violates unique constraint \"ciclistes_email_key\"")
+            if "email" in msg:
+                raise HTTPException(status_code=409, detail="Aquest email ja està inscrit.")
+            if "dni" in msg:
+                raise HTTPException(status_code=409, detail="Aquest DNI ja està inscrit.")
+            raise HTTPException(status_code=409, detail="Aquest participant ja està inscrit.")
         raise HTTPException(status_code=500, detail="Error intern del servidor")
 
 
