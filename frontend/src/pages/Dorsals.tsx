@@ -10,6 +10,7 @@ interface Ciclista {
   nom: string
   cognoms: string
   numero_dorsal: number
+  foto_url: string | null
 }
 
 export default function Dorsals() {
@@ -108,8 +109,19 @@ export default function Dorsals() {
                 <span>Le Tour de Charley's</span>
                 <span>Torelló · 2026</span>
               </div>
-              <div className={`dorsal-numero ${bgImage ? 'dorsal-numero-shadow' : ''}`}>{c.numero_dorsal}</div>
-              <div className={`dorsal-nom ${bgImage ? 'dorsal-nom-shadow' : ''}`}>{c.nom} {c.cognoms}</div>
+
+              {/* Contingut principal */}
+              <div className="dorsal-cos">
+                <div className={`dorsal-numero ${bgImage ? 'dorsal-numero-shadow' : ''}`}>{c.numero_dorsal}</div>
+                <div className={`dorsal-nom ${bgImage ? 'dorsal-nom-shadow' : ''}`}>{c.nom} {c.cognoms}</div>
+              </div>
+
+              {/* Foto personal si en té */}
+              {c.foto_url && (
+                <div className="dorsal-foto">
+                  <img src={c.foto_url} alt={c.nom} className="dorsal-foto-img" />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -156,6 +168,23 @@ export default function Dorsals() {
           display: flex; justify-content: space-between; align-items: center;
           padding: 6px 14px; font-size: 10px; font-weight: bold;
           letter-spacing: 1.5px; text-transform: uppercase; color: #111; z-index: 2;
+        }
+        .dorsal-cos {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          z-index: 2; position: relative; flex: 1;
+        }
+        .dorsal-foto {
+          position: absolute;
+          right: 12px; bottom: 28px;
+          width: 22%; aspect-ratio: 1;
+          z-index: 3;
+        }
+        .dorsal-foto-img {
+          width: 100%; height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+          border: 2px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         .dorsal-numero {
           font-size: clamp(48px, 10vw, 88px); font-weight: 900;

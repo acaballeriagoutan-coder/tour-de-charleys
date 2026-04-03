@@ -21,6 +21,7 @@ interface Ciclista {
   accepta_reglament: boolean
   cessio_imatge: boolean
   numero_dorsal: number | null
+  foto_url: string | null
   created_at: string
 }
 
@@ -30,12 +31,109 @@ function Badge({ ok, labelOk, labelNo }: { ok: boolean; labelOk: string; labelNo
     : <span className="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded">{labelNo}</span>
 }
 
+function Drawer({ ciclista, onClose }: { ciclista: Ciclista; onClose: () => void }) {
+  const edat = ciclista.data_naixement
+    ? Math.floor((Date.now() - new Date(ciclista.data_naixement).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+    : null
+
+  return (
+    <>
+      {/* Fons fosc */}
+      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
+
+      {/* Panell lateral */}
+      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-gray-900 border-l border-gray-800 z-50 flex flex-col shadow-2xl">
+
+        {/* Capçalera */}
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            {ciclista.foto_url
+              ? <img src={ciclista.foto_url} alt={ciclista.nom} className="w-12 h-12 rounded-full object-cover ring-2 ring-yellow-400" />
+              : <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-xl text-gray-500">👤</div>
+            }
+            <div>
+              <p className="font-bold text-white">{ciclista.nom} {ciclista.cognoms}</p>
+              <p className="text-xs text-gray-500">{ciclista.email}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-white text-xl transition mt-0.5">✕</button>
+        </div>
+
+        {/* Contingut */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6 text-sm">
+
+          {/* Dorsal */}
+          {ciclista.numero_dorsal !== null && (
+            <div className="flex items-center gap-2">
+              <span className="bg-yellow-400 text-black font-black px-3 py-1 rounded text-lg">{ciclista.numero_dorsal}</span>
+              <span className="text-gray-400 text-xs">Dorsal assignat</span>
+            </div>
+          )}
+
+          {/* Dades personals */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Dades personals</p>
+            <div className="flex flex-col gap-2">
+              <Row label="DNI" valor={ciclista.dni} />
+              <Row label="Data de naixement" valor={ciclista.data_naixement ? `${new Date(ciclista.data_naixement).toLocaleDateString('ca-ES')}${edat ? ` (${edat} anys)` : ''}` : null} />
+              <Row label="Gènere" valor={ciclista.genere} />
+              <Row label="Telèfon" valor={ciclista.telefon} />
+            </div>
+          </div>
+
+          {/* Contacte emergència */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Contacte d'emergència</p>
+            <div className="flex flex-col gap-2">
+              <Row label="Nom" valor={ciclista.contacte_emergencia_nom} />
+              <Row label="Telèfon" valor={ciclista.contacte_emergencia_telefon} />
+            </div>
+          </div>
+
+          {/* Assegurança */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Assegurança</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Assegurança pròpia</span>
+                <Badge ok={ciclista.te_asseguranca} labelOk="Sí" labelNo="No" />
+              </div>
+              {!ciclista.te_asseguranca && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Assegurança organització</span>
+                  <span className="bg-orange-900/50 text-orange-400 text-xs px-2 py-0.5 rounded">Pendent de pagament</span>
+                </div>
+              )}
+              {ciclista.numero_llicencia && (
+                <Row label="Llicència federativa" valor={ciclista.numero_llicencia} />
+              )}
+            </div>
+          </div>
+
+          {/* Data inscripció */}
+          <div className="pt-2 border-t border-gray-800">
+            <p className="text-xs text-gray-600">Inscrit el {new Date(ciclista.created_at).toLocaleDateString('ca-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function Row({ label, valor }: { label: string; valor: string | null | undefined }) {
+  return (
+    <div className="flex justify-between items-center gap-4">
+      <span className="text-gray-400 shrink-0">{label}</span>
+      <span className="text-white text-right">{valor || <span className="text-gray-600">—</span>}</span>
+    </div>
+  )
+}
+
 export default function Admin() {
   const navigate = useNavigate()
   const [ciclistes, setCiclistes] = useState<Ciclista[]>([])
   const [carregant, setCarregant] = useState(true)
-  const [assignant, setAssignant] = useState(false)
-  const [expandit, setExpandit] = useState<string | null>(null)
+  const [seleccionat, setSeleccionat] = useState<Ciclista | null>(null)
 
   async function carregarCiclistes() {
     setCarregant(true)
@@ -44,16 +142,8 @@ export default function Admin() {
     setCarregant(false)
   }
 
-  async function assignarDorsals() {
-    setAssignant(true)
-    await axios.post(`${API}/ciclistes/assignar-dorsals`)
-    await carregarCiclistes()
-    setAssignant(false)
-  }
-
   useEffect(() => { carregarCiclistes() }, [])
 
-  const senseDorsal = ciclistes.filter(c => c.numero_dorsal === null).length
   const ambAsseguranca = ciclistes.filter(c => c.te_asseguranca).length
   const volAsseguranca = ciclistes.filter(c => c.vol_asseguranca === true).length
 
@@ -64,22 +154,26 @@ export default function Admin() {
           <h1 className="text-xl font-bold">Panell d'Administració</h1>
           <p className="text-sm text-gray-400">Le Tour de Charley's · 2026</p>
         </div>
-        <button onClick={() => navigate('/admin/dorsals')}
-          className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-4 py-2 rounded-lg text-sm transition">
-          Imprimir dorsals →
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => navigate('/admin/cronometratge')}
+            className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+            Cronometratge
+          </button>
+          <button onClick={() => navigate('/admin/dorsals')}
+            className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-4 py-2 rounded-lg text-sm transition">
+            Imprimir dorsals →
+          </button>
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-10">
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Total inscrits', valor: ciclistes.length, color: 'text-yellow-400' },
-            { label: 'Amb dorsal', valor: ciclistes.length - senseDorsal, color: 'text-green-400' },
-            { label: 'Sense dorsal', valor: senseDorsal, color: 'text-zinc-400' },
-            { label: 'Amb assegurança', valor: ambAsseguranca, color: 'text-blue-400' },
-            { label: 'Volen assegurança', valor: volAsseguranca, color: 'text-orange-400' },
+            { label: 'Amb assegurança pròpia', valor: ambAsseguranca, color: 'text-blue-400' },
+            { label: 'Volen assegurança nostra', valor: volAsseguranca, color: 'text-orange-400' },
           ].map(({ label, valor, color }) => (
             <div key={label} className="bg-gray-900 rounded-xl p-4 text-center">
               <p className={`text-3xl font-black ${color}`}>{valor}</p>
@@ -87,19 +181,6 @@ export default function Admin() {
             </div>
           ))}
         </div>
-
-        {/* Assignar dorsals */}
-        {senseDorsal > 0 && (
-          <div className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4 mb-6 flex items-center justify-between">
-            <p className="text-yellow-300 text-sm">
-              Hi ha <strong>{senseDorsal}</strong> ciclista{senseDorsal !== 1 ? 'es' : ''} sense dorsal assignat.
-            </p>
-            <button onClick={assignarDorsals} disabled={assignant}
-              className="bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-black font-bold px-4 py-2 rounded-lg text-sm transition">
-              {assignant ? 'Assignant...' : 'Assignar dorsals'}
-            </button>
-          </div>
-        )}
 
         {/* Taula */}
         {carregant ? (
@@ -117,7 +198,6 @@ export default function Admin() {
                   <th className="px-4 py-3 text-left">Assegurança</th>
                   <th className="px-4 py-3 text-left">Llicència</th>
                   <th className="px-4 py-3 text-left">Inscripció</th>
-                  <th className="px-4 py-3 text-left"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -127,65 +207,40 @@ export default function Admin() {
                     : null
 
                   return (
-                    <>
-                      <tr key={c.id} className="hover:bg-gray-800/50 transition">
-                        <td className="px-4 py-3">
-                          {c.numero_dorsal !== null
-                            ? <span className="bg-yellow-400 text-black font-black px-2 py-0.5 rounded text-xs">{c.numero_dorsal}</span>
-                            : <span className="text-gray-600">—</span>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-bold">{c.nom} {c.cognoms}</p>
-                          <p className="text-xs text-gray-500">{c.email}</p>
-                        </td>
-                        <td className="px-4 py-3 text-gray-300 font-mono text-xs">{c.dni || '—'}</td>
-                        <td className="px-4 py-3 text-gray-300">{edat ? `${edat} anys` : '—'}</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">{c.genere || '—'}</td>
-                        <td className="px-4 py-3">
-                          {c.te_asseguranca
-                            ? <Badge ok labelOk="Pròpia" labelNo="" />
-                            : c.vol_asseguranca
-                              ? <span className="bg-orange-900/50 text-orange-400 text-xs px-2 py-0.5 rounded">Vol la nostra</span>
-                              : <span className="bg-gray-800 text-gray-500 text-xs px-2 py-0.5 rounded">Sense</span>
+                    <tr key={c.id}
+                      onClick={() => setSeleccionat(c)}
+                      className="hover:bg-gray-800/60 cursor-pointer transition">
+                      <td className="px-4 py-3">
+                        {c.numero_dorsal !== null
+                          ? <span className="bg-yellow-400 text-black font-black px-2 py-0.5 rounded text-xs">{c.numero_dorsal}</span>
+                          : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {c.foto_url
+                            ? <img src={c.foto_url} alt={c.nom} className="w-7 h-7 rounded-full object-cover ring-1 ring-yellow-400/50 shrink-0" />
+                            : <div className="w-7 h-7 rounded-full bg-gray-800 shrink-0" />
                           }
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{c.numero_llicencia || '—'}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{new Date(c.created_at).toLocaleDateString('ca-ES')}</td>
-                        <td className="px-4 py-3">
-                          <button onClick={() => setExpandit(expandit === c.id ? null : c.id)}
-                            className="text-xs text-gray-500 hover:text-white transition">
-                            {expandit === c.id ? '▲' : '▼'}
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* Fila expandida */}
-                      {expandit === c.id && (
-                        <tr key={`${c.id}-detail`} className="bg-gray-800/30">
-                          <td colSpan={9} className="px-6 py-4">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                              <div>
-                                <p className="text-gray-500 uppercase tracking-wider mb-1">Telèfon</p>
-                                <p className="text-white">{c.telefon}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-500 uppercase tracking-wider mb-1">Contacte emergència</p>
-                                <p className="text-white">{c.contacte_emergencia_nom}</p>
-                                <p className="text-gray-400">{c.contacte_emergencia_telefon}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-500 uppercase tracking-wider mb-1">Cessió d'imatge</p>
-                                <Badge ok={c.cessio_imatge} labelOk="Autoritzada" labelNo="No autoritzada" />
-                              </div>
-                              <div>
-                                <p className="text-gray-500 uppercase tracking-wider mb-1">Reglament</p>
-                                <Badge ok={c.accepta_reglament} labelOk="Acceptat" labelNo="No acceptat" />
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </>
+                          <div>
+                            <p className="font-bold">{c.nom} {c.cognoms}</p>
+                            <p className="text-xs text-gray-500">{c.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-300 font-mono text-xs">{c.dni || '—'}</td>
+                      <td className="px-4 py-3 text-gray-300">{edat ? `${edat} anys` : '—'}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">{c.genere || '—'}</td>
+                      <td className="px-4 py-3">
+                        {c.te_asseguranca
+                          ? <Badge ok labelOk="Pròpia" labelNo="" />
+                          : c.vol_asseguranca
+                            ? <span className="bg-orange-900/50 text-orange-400 text-xs px-2 py-0.5 rounded">Vol la nostra</span>
+                            : <span className="bg-gray-800 text-gray-500 text-xs px-2 py-0.5 rounded">Sense</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{c.numero_llicencia || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{new Date(c.created_at).toLocaleDateString('ca-ES')}</td>
+                    </tr>
                   )
                 })}
               </tbody>
@@ -196,6 +251,9 @@ export default function Admin() {
           </div>
         )}
       </main>
+
+      {/* Drawer */}
+      {seleccionat && <Drawer ciclista={seleccionat} onClose={() => setSeleccionat(null)} />}
     </div>
   )
 }

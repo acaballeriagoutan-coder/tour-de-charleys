@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from dotenv import load_dotenv
 from typing import Optional
 import os
+import uuid
 from supabase import create_client, Client
 
 load_dotenv()
@@ -38,8 +39,9 @@ class InscripcioInput(BaseModel):
     contacte_emergencia_telefon: str
     # Assegurança — obligatori respondre
     te_asseguranca: bool
-    vol_asseguranca: Optional[bool] = None   # només si te_asseguranca = False
-    numero_llicencia: Optional[str] = None   # opcional
+    vol_asseguranca: Optional[bool] = None   # automàtic: True si te_asseguranca = False
+    numero_llicencia: Optional[str] = None
+    foto_url: Optional[str] = None
     # Legal — acceptació obligatòria
     accepta_reglament: bool
     cessio_imatge: bool
@@ -55,6 +57,11 @@ def inscriure_ciclista(data: InscripcioInput):
     if not data.accepta_reglament:
         raise HTTPException(status_code=400, detail="Cal acceptar el reglament per inscriure's")
     try:
+        # Calcular el següent dorsal
+        maxim = supabase.table("ciclistes").select("numero_dorsal").not_.is_("numero_dorsal", "null").execute()
+        dorsals = [r["numero_dorsal"] for r in maxim.data]
+        seguent_dorsal = max(dorsals, default=0) + 1
+
         result = supabase.table("ciclistes").insert({
             "nom": data.nom,
             "cognoms": data.cognoms,
@@ -67,9 +74,11 @@ def inscriure_ciclista(data: InscripcioInput):
             "contacte_emergencia_telefon": data.contacte_emergencia_telefon,
             "te_asseguranca": data.te_asseguranca,
             "vol_asseguranca": data.vol_asseguranca,
-            "numero_llicencia": data.numero_llicencia or None,
+            "numero_llicencia": data.numero_llicencia if data.te_asseguranca else None,
+            "foto_url": data.foto_url,
             "accepta_reglament": data.accepta_reglament,
             "cessio_imatge": data.cessio_imatge,
+            "numero_dorsal": seguent_dorsal,
         }).execute()
         if not result.data:
             raise HTTPException(status_code=400, detail="Error en la inscripció")
@@ -108,6 +117,18 @@ def assignar_dorsals():
         actualitzats += 1
 
     return {"assignats": actualitzats}
+
+
+@app.post("/upload-foto")
+async def upload_foto(foto: UploadFile = File(...)):
+    contingut = await foto.read()
+    ext = (foto.filename or "jpg").rsplit(".", 1)[-1].lower()
+    nom_fitxer = f"{uuid.uuid4()}.{ext}"
+    supabase.storage.from_("fotos-ciclistes").upload(
+        nom_fitxer, contingut, {"content-type": foto.content_type or "image/jpeg"}
+    )
+    url = supabase.storage.from_("fotos-ciclistes").get_public_url(nom_fitxer)
+    return {"url": url}
 
 
 @app.get("/ciclistes/amb-dorsal")
