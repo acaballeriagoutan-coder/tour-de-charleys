@@ -153,6 +153,10 @@ export default function Admin() {
           <p className="text-sm text-gray-400">Le Tour de Charley's · 2026</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={() => navigate('/admin/stats')}
+            className="bg-purple-700 hover:bg-purple-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+            Agent IA
+          </button>
           <button onClick={() => navigate('/admin/cronometratge')}
             className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
             Cronometratge

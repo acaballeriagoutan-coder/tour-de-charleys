@@ -8,6 +8,7 @@ import Admin from './pages/Admin'
 import Dorsals from './pages/Dorsals'
 import Cronometratge from './pages/Cronometratge'
 import FullTemps from './pages/FullTemps'
+import Stats from './pages/Stats'
 import ProtectedRoute from './components/ProtectedRoute'
 
 createRoot(document.getElementById('root')!).render(
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/admin/dorsals" element={<ProtectedRoute><Dorsals /></ProtectedRoute>} />
         <Route path="/admin/cronometratge" element={<ProtectedRoute><Cronometratge /></ProtectedRoute>} />
         <Route path="/admin/full-temps" element={<ProtectedRoute><FullTemps /></ProtectedRoute>} />
+        <Route path="/admin/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

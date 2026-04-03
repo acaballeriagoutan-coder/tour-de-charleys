@@ -7,7 +7,9 @@ from typing import Optional
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
+import anthropic
 import os
+from datetime import date
 import uuid
 from supabase import create_client, Client
 
@@ -183,3 +185,110 @@ def assignar_dorsals(_: str = Depends(get_admin)):
         actualitzats += 1
 
     return {"assignats": actualitzats}
+
+
+@app.get("/stats/insights")
+def stats_insights(_: str = Depends(get_admin)):
+    result = supabase.table("ciclistes").select("*").execute()
+    ciclistes = result.data
+
+    if not ciclistes:
+        return {"stats": {}, "insights": []}
+
+    avui = date.today()
+
+    # Càlcul d'estadístiques
+    total = len(ciclistes)
+
+    # Gènere
+    generes: dict = {}
+    for c in ciclistes:
+        g = c.get("genere") or "Desconegut"
+        generes[g] = generes.get(g, 0) + 1
+
+    # Franges d'edat
+    franges = {"<18": 0, "18-30": 0, "31-45": 0, "46-60": 0, "+60": 0, "Desconeguda": 0}
+    edats = []
+    for c in ciclistes:
+        dn = c.get("data_naixement")
+        if dn:
+            try:
+                naix = date.fromisoformat(dn)
+                edat = (avui - naix).days // 365
+                edats.append(edat)
+                if edat < 18: franges["<18"] += 1
+                elif edat <= 30: franges["18-30"] += 1
+                elif edat <= 45: franges["31-45"] += 1
+                elif edat <= 60: franges["46-60"] += 1
+                else: franges["+60"] += 1
+            except Exception:
+                franges["Desconeguda"] += 1
+        else:
+            franges["Desconeguda"] += 1
+    edat_mitja = round(sum(edats) / len(edats)) if edats else 0
+    edat_min = min(edats) if edats else 0
+    edat_max = max(edats) if edats else 0
+
+    # Assegurança
+    amb_asseguranca = sum(1 for c in ciclistes if c.get("te_asseguranca"))
+    vol_nostra = sum(1 for c in ciclistes if not c.get("te_asseguranca"))
+    amb_llicencia = sum(1 for c in ciclistes if c.get("numero_llicencia"))
+
+    # Inscripcions per dia (últims 14 dies)
+    per_dia: dict = {}
+    for c in ciclistes:
+        created = c.get("created_at", "")[:10]
+        if created:
+            per_dia[created] = per_dia.get(created, 0) + 1
+    per_dia_llista = sorted([{"data": k, "count": v} for k, v in per_dia.items()], key=lambda x: x["data"])
+
+    stats = {
+        "total": total,
+        "genere": generes,
+        "edats": {k: v for k, v in franges.items() if v > 0},
+        "edat_mitja": edat_mitja,
+        "edat_min": edat_min,
+        "edat_max": edat_max,
+        "asseguranca": {"Pròpia": amb_asseguranca, "Vol la nostra": vol_nostra},
+        "amb_llicencia": amb_llicencia,
+        "per_dia": per_dia_llista,
+    }
+
+    # Crida a Claude per generar insights
+    try:
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        prompt = f"""Ets l'agent d'anàlisi del Le Tour de Charley's 2026, una cursa ciclista amateur a Catalunya.
+Tens accés a les dades d'inscripció. Analitza-les i genera exactament 5 insights útils per a l'organitzador.
+
+DADES:
+- Total inscrits: {total}
+- Distribució per gènere: {generes}
+- Franges d'edat: {franges}
+- Edat mitjana: {edat_mitja} anys (mínim {edat_min}, màxim {edat_max})
+- Amb assegurança pròpia: {amb_asseguranca} | Volen la de l'organització: {vol_nostra}
+- Amb llicència federativa: {amb_llicencia}
+- Inscripcions per dia: {per_dia_llista}
+
+Respon NOMÉS amb un JSON vàlid amb aquesta estructura exacta (sense cap text fora del JSON):
+[
+  {{"titol": "...", "text": "...", "color": "blue"}},
+  {{"titol": "...", "text": "...", "color": "yellow"}},
+  {{"titol": "...", "text": "...", "color": "green"}},
+  {{"titol": "...", "text": "...", "color": "orange"}},
+  {{"titol": "...", "text": "...", "color": "purple"}}
+]
+
+Colors disponibles: blue, yellow, green, orange, purple.
+Escriu els insights en català. Sigues concret, útil i accionable per a l'organitzador."""
+
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        import json as json_module
+        insights = json_module.loads(message.content[0].text)
+    except Exception as e:
+        insights = [{"titol": "Error", "text": f"No s'han pogut generar insights: {str(e)}", "color": "blue"}]
+
+    return {"stats": stats, "insights": insights}
