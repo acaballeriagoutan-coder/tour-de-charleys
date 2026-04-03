@@ -14,3 +14,6 @@ frontend/dist/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Carpeta Next.js descartada
+tour-de-charleys/
