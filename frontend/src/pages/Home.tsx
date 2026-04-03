@@ -38,33 +38,35 @@ export default function Home() {
     <div style={{ fontFamily: "'Arial Black', 'Impact', Arial, sans-serif" }} className="min-h-screen bg-black text-white">
 
       {/* ── HERO ── */}
-      <header className="relative flex flex-col items-center justify-center text-center px-6 py-28 overflow-hidden bg-black">
-        {/* Fons degradat */}
-        <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-black to-black" />
+      <header className="relative flex flex-col items-center justify-center text-center px-6 py-36 overflow-hidden min-h-screen">
+        {/* Foto de fons */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/hero-bg.jpg')" }}
+        />
+        {/* Capa fosca sobre la foto */}
+        <div className="absolute inset-0 bg-black/55" />
+        {/* Degradat cap a baix per fusionar amb el negre */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black" />
 
         {/* Línia accent groga */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-400" />
 
         <div className="relative z-10 flex flex-col items-center">
-          {/* Logo / títol */}
-          <div className="mb-4 flex items-center gap-3">
-            <div className="w-4 h-4 rounded-full bg-yellow-400" />
-            <span className="text-yellow-400 text-xs font-bold uppercase tracking-[0.3em]">Torelló · Osona</span>
-            <div className="w-4 h-4 rounded-full bg-yellow-400" />
-          </div>
+          {/* Logo gran centrat */}
+          <img
+            src="/logo.png"
+            alt="Le Tour de Charley's"
+            className="w-44 md:w-56 mb-8 drop-shadow-2xl"
+          />
 
-          <h1 className="text-6xl md:text-8xl font-black uppercase leading-none tracking-tight">
-            <span className="text-white">Le Tour</span><br />
-            <span className="text-yellow-400">de Charley's</span>
-          </h1>
-
-          <div className="mt-6 flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <div className="h-px w-16 bg-yellow-400" />
-            <span className="text-zinc-400 text-sm uppercase tracking-widest">Edició 2026</span>
+            <span className="text-yellow-400 text-xs font-bold uppercase tracking-[0.3em]">Edició 2026 · Torelló</span>
             <div className="h-px w-16 bg-yellow-400" />
           </div>
 
-          <p className="mt-8 text-zinc-300 text-lg max-w-md font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
+          <p className="mt-6 text-white/80 text-lg max-w-md font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
             La cursa ciclista més esperada de l'any torna. Apunta't i viu l'experiència.
           </p>
 
@@ -77,11 +79,12 @@ export default function Home() {
           </a>
         </div>
 
-        {/* Fletxes decoratives (referència al logo IG) */}
-        <div className="absolute bottom-8 right-8 flex gap-1 opacity-30">
-          <div className="w-3 h-3 border-r-2 border-b-2 border-yellow-400 rotate-[-45deg]" />
-          <div className="w-3 h-3 border-r-2 border-b-2 border-yellow-400 rotate-[-45deg]" />
-        </div>
+        {/* Logo petit cantonada inferior dreta */}
+        <img
+          src="/logo.png"
+          alt=""
+          className="absolute bottom-6 right-6 w-12 opacity-60"
+        />
       </header>
 
       {/* ── STRIP INFO ── */}
